@@ -8,13 +8,13 @@
     body {
       background: black;
       color: white;
-      font-family: Arial, sans-serif;
       text-align: center;
-      height: 100vh;
+      font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
+      height: 100vh;
       margin: 0;
       overflow: hidden;
     }
@@ -31,30 +31,34 @@
 
     h1 {
       color: #00ffea;
-      font-size: 2em;
       text-shadow: 0 0 10px cyan;
     }
 
     #alertBox {
       background-color: rgba(255, 0, 0, 0.85);
-      color: white;
       padding: 20px;
-      border-radius: 10px;
+      border-radius: 12px;
       margin-top: 20px;
+      font-size: 1.4em;
+      box-shadow: 0 0 20px red;
       display: none;
-      font-size: 1.5em;
-      box-shadow: 0 0 15px red;
+      animation: blink 0.5s infinite alternate;
     }
 
-    #unlockBtn {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 1rem;
-      background-color: #00ffea;
+    @keyframes blink {
+      from { opacity: 1; }
+      to { opacity: 0.5; }
+    }
+
+    #enableSound {
+      background: #00ffea;
       color: black;
       border: none;
+      padding: 10px 20px;
+      margin-top: 15px;
       border-radius: 8px;
       cursor: pointer;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -63,9 +67,9 @@
     <source src="./854228-hd_1920_1080_30fps.mp4" type="video/mp4" />
   </video>
 
-  <h1>🛰️ Ground Station Console</h1>
+  <h1>🛰 Ground Station Console</h1>
   <div id="alertBox">Awaiting SOS Signal...</div>
-  <button id="unlockBtn">🔊 Enable Alert Sound</button>
+  <button id="enableSound">🔊 Enable Alert Sound</button>
 
   <audio id="alarm" src="./emergency-alarm-69780.mp3" preload="auto"></audio>
 
@@ -74,36 +78,44 @@
     const socket = io();
     const alarm = document.getElementById("alarm");
     const alertBox = document.getElementById("alertBox");
-    const unlockBtn = document.getElementById("unlockBtn");
+    const enableBtn = document.getElementById("enableSound");
 
-    let audioUnlocked = false;
+    let soundEnabled = false;
 
-    unlockBtn.addEventListener("click", () => {
+    enableBtn.addEventListener("click", () => {
       alarm.play().then(() => {
         alarm.pause();
-        alarm.currentTime = 0;
-        audioUnlocked = true;
-        unlockBtn.style.display = "none";
-        alertBox.innerText = "✅ Audio system ready. Waiting for SOS...";
-      });
+        soundEnabled = true;
+        enableBtn.style.display = "none";
+        console.log("✅ Sound unlocked");
+      }).catch(err => console.warn("Audio unlock failed:", err));
     });
 
     socket.on("sosAlert", (data) => {
       console.log("🚨 SOS received:", data);
 
-      if (audioUnlocked) {
-        alarm.currentTime = 0;
-        alarm.play();
-
-        setTimeout(() => {
-          alarm.pause();
-          alarm.currentTime = 0;
-        }, 3000);
+      if (!soundEnabled) {
+        alert("Please click 'Enable Alert Sound' first to allow sound.");
+        return;
       }
 
+      // Play alarm for 3 seconds
+      alarm.currentTime = 0;
+      alarm.play();
+      setTimeout(() => {
+        alarm.pause();
+        alarm.currentTime = 0;
+      }, 3000);
+
+      // Show alert message after 3 seconds
       setTimeout(() => {
         alertBox.style.display = "block";
-        alertBox.innerText = `🚨 SOS ALERT!\nProblem: ${data.problemType}\nBattery: ${data.battery}% | O₂: ${data.oxygen}%`;
+        alertBox.innerHTML = `
+          🚨 <b>SOS ALERT!</b><br><br>
+          Problem: ${data.problem}<br>
+          Battery: ${data.battery}% | O₂: ${data.oxygen}%<br><br>
+          🛰 Ground Control Notified.
+        `;
         document.body.style.backgroundColor = "darkred";
       }, 3000);
     });
