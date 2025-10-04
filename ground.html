@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ground Station - AstroSOS</title>
+  <style>
+    body {
+      background: black;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -1;
+    }
+
+    h1 {
+      color: #00ffea;
+      font-size: 2em;
+      text-shadow: 0 0 10px cyan;
+    }
+
+    #alertBox {
+      background-color: rgba(255, 0, 0, 0.85);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 20px;
+      display: none;
+      font-size: 1.5em;
+      box-shadow: 0 0 15px red;
+    }
+
+    #unlockBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      background-color: #00ffea;
+      color: black;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <video autoplay muted loop>
+    <source src="./854228-hd_1920_1080_30fps.mp4" type="video/mp4" />
+  </video>
+
+  <h1>🛰️ Ground Station Console</h1>
+  <div id="alertBox">Awaiting SOS Signal...</div>
+  <button id="unlockBtn">🔊 Enable Alert Sound</button>
+
+  <audio id="alarm" src="./emergency-alarm-69780.mp3" preload="auto"></audio>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const alarm = document.getElementById("alarm");
+    const alertBox = document.getElementById("alertBox");
+    const unlockBtn = document.getElementById("unlockBtn");
+
+    let audioUnlocked = false;
+
+    unlockBtn.addEventListener("click", () => {
+      alarm.play().then(() => {
+        alarm.pause();
+        alarm.currentTime = 0;
+        audioUnlocked = true;
+        unlockBtn.style.display = "none";
+        alertBox.innerText = "✅ Audio system ready. Waiting for SOS...";
+      });
+    });
+
+    socket.on("sosAlert", (data) => {
+      console.log("🚨 SOS received:", data);
+
+      if (audioUnlocked) {
+        alarm.currentTime = 0;
+        alarm.play();
+
+        setTimeout(() => {
+          alarm.pause();
+          alarm.currentTime = 0;
+        }, 3000);
+      }
+
+      setTimeout(() => {
+        alertBox.style.display = "block";
+        alertBox.innerText = `🚨 SOS ALERT!\nProblem: ${data.problemType}\nBattery: ${data.battery}% | O₂: ${data.oxygen}%`;
+        document.body.style.backgroundColor = "darkred";
+      }, 3000);
+    });
+  </script>
+</body>
+</html>
