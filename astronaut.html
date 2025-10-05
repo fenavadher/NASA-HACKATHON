@@ -70,7 +70,6 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-
     document.getElementById("sosBtn").addEventListener("click", () => {
       const data = {
         astronautId: "ASTRO-1",
@@ -79,9 +78,10 @@
         oxygen: document.getElementById("oxygen").value
       };
 
+      // Send SOS to server
       socket.emit("sos", data);
 
-      // Open Ground Control in new tab
+      // Open ground station in new tab immediately
       window.open("/ground", "_blank");
     });
   </script>
