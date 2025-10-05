@@ -1,95 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ground Station - AstroSOS</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AstroSOS | Ground Station</title>
+
   <style>
+    /* --- Page Layout --- */
     body {
-      background: black;
-      color: white;
-      text-align: center;
-      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #000;
+      color: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      height: 100vh;
       display: flex;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
-      height: 100vh;
-      margin: 0;
+      justify-content: center;
+      text-align: center;
       overflow: hidden;
     }
 
+    /* Background video */
     video {
       position: fixed;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
       z-index: -1;
+      opacity: 0.6;
     }
 
     h1 {
-      color: #00ffea;
-      text-shadow: 0 0 10px cyan;
+      color: cyan;
+      text-shadow: 0 0 12px #00ffff;
+      margin-bottom: 15px;
+      font-weight: 600;
     }
 
+    /* Alert box for SOS display */
     #alertBox {
-      background-color: rgba(255, 0, 0, 0.85);
-      padding: 20px;
-      border-radius: 12px;
-      margin-top: 20px;
-      font-size: 1.4em;
-      box-shadow: 0 0 20px red;
+      background: rgba(255, 30, 30, 0.8);
+      padding: 18px 28px;
+      border-radius: 10px;
+      font-size: 1.2rem;
+      box-shadow: 0 0 25px rgba(255, 0, 0, 0.6);
       display: none;
+      width: fit-content;
+      max-width: 90%;
+    }
+
+    /* Add a soft glow when alert is visible */
+    body.alert-active {
+      background-color: #200;
+      transition: background 0.3s;
     }
   </style>
 </head>
+
 <body>
+  <!-- Background video -->
   <video autoplay muted loop>
-    <source src="./854228-hd_1920_1080_30fps.mp4" type="video/mp4" />
+    <source src="./854228-hd_1920_1080_30fps.mp4" type="video/mp4">
   </video>
 
-  <h1>🛰 Ground Station Console</h1>
-  <div id="alertBox">Awaiting SOS Signal...</div>
+  <h1>🛰 Ground Control Dashboard</h1>
+  <div id="alertBox">Waiting for SOS signal...</div>
 
-  <audio id="alarm" src="./emergency-alarm-69780.mp3" preload="auto"></audio>
+  <!-- Alarm sound -->
+  <audio id="alarmSound" src="./emergency-alarm-69780.mp3" preload="auto"></audio>
 
+  <!-- Socket IO connection -->
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    const alarm = document.getElementById("alarm");
     const alertBox = document.getElementById("alertBox");
+    const alarm = document.getElementById("alarmSound");
 
-    // Unlock audio (for browser autoplay rules)
-    window.addEventListener("click", () => {
+    // browsers sometimes block audio autoplay
+    document.body.addEventListener("click", () => {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       ctx.resume();
     });
 
-    // SOS received from astronaut
-    socket.on("sosAlert", (data) => {
-      console.log("🚨 SOS RECEIVED:", data);
+    // listen for SOS data
+    socket.on("sosAlert", (packet) => {
+      console.log("🚨 SOS Signal:", packet);
 
-      // Play alarm instantly
+      // Play alarm
       alarm.currentTime = 0;
       alarm.volume = 1;
-      alarm.play().catch(err => console.warn("Audio blocked:", err));
+      alarm.play().catch(err => console.log("Audio blocked:", err));
 
-      // Show message at the same time (not after delay)
+      // Update the UI
+      document.body.classList.add("alert-active");
       alertBox.style.display = "block";
       alertBox.innerHTML = `
-        🚨 <b>SOS ALERT!</b><br><br>
-        Problem: ${data.problem}<br>
-        Battery: ${data.battery}% | O₂: ${data.oxygen}%<br><br>
-        🛰 Ground Control Notified.
+        🚨 <b>SOS ALERT</b><br><br>
+        Problem: ${packet.problem}<br>
+        Battery: ${packet.battery}% | Oxygen: ${packet.oxygen}%<br><br>
+        🛰 Message relayed to Mission Control
       `;
-      document.body.style.backgroundColor = "darkred";
 
-      // Stop alarm after 10s
+      // Stop alarm after a while (10 sec)
       setTimeout(() => {
         alarm.pause();
         alarm.currentTime = 0;
+        document.body.classList.remove("alert-active");
       }, 10000);
     });
   </script>
