@@ -42,23 +42,6 @@
       font-size: 1.4em;
       box-shadow: 0 0 20px red;
       display: none;
-      animation: blink 0.5s infinite alternate;
-    }
-
-    @keyframes blink {
-      from { opacity: 1; }
-      to { opacity: 0.5; }
-    }
-
-    #enableSound {
-      background: #00ffea;
-      color: black;
-      border: none;
-      padding: 10px 20px;
-      margin-top: 15px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
     }
   </style>
 </head>
@@ -69,7 +52,6 @@
 
   <h1>🛰 Ground Station Console</h1>
   <div id="alertBox">Awaiting SOS Signal...</div>
-  <button id="enableSound">🔊 Enable Alert Sound</button>
 
   <audio id="alarm" src="./emergency-alarm-69780.mp3" preload="auto"></audio>
 
@@ -78,46 +60,37 @@
     const socket = io();
     const alarm = document.getElementById("alarm");
     const alertBox = document.getElementById("alertBox");
-    const enableBtn = document.getElementById("enableSound");
 
-    let soundEnabled = false;
-
-    enableBtn.addEventListener("click", () => {
-      alarm.play().then(() => {
-        alarm.pause();
-        soundEnabled = true;
-        enableBtn.style.display = "none";
-        console.log("✅ Sound unlocked");
-      }).catch(err => console.warn("Audio unlock failed:", err));
+    // Unlock audio (for browser autoplay rules)
+    window.addEventListener("click", () => {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      ctx.resume();
     });
 
+    // SOS received from astronaut
     socket.on("sosAlert", (data) => {
-      console.log("🚨 SOS received:", data);
+      console.log("🚨 SOS RECEIVED:", data);
 
-      if (!soundEnabled) {
-        alert("Please click 'Enable Alert Sound' first to allow sound.");
-        return;
-      }
-
-      // Play alarm for 3 seconds
+      // Play alarm instantly
       alarm.currentTime = 0;
-      alarm.play();
+      alarm.volume = 1;
+      alarm.play().catch(err => console.warn("Audio blocked:", err));
+
+      // Show message at the same time (not after delay)
+      alertBox.style.display = "block";
+      alertBox.innerHTML = `
+        🚨 <b>SOS ALERT!</b><br><br>
+        Problem: ${data.problem}<br>
+        Battery: ${data.battery}% | O₂: ${data.oxygen}%<br><br>
+        🛰 Ground Control Notified.
+      `;
+      document.body.style.backgroundColor = "darkred";
+
+      // Stop alarm after 10s
       setTimeout(() => {
         alarm.pause();
         alarm.currentTime = 0;
-      }, 3000);
-
-      // Show alert message after 3 seconds
-      setTimeout(() => {
-        alertBox.style.display = "block";
-        alertBox.innerHTML = `
-          🚨 <b>SOS ALERT!</b><br><br>
-          Problem: ${data.problem}<br>
-          Battery: ${data.battery}% | O₂: ${data.oxygen}%<br><br>
-          🛰 Ground Control Notified.
-        `;
-        document.body.style.backgroundColor = "darkred";
-      }, 3000);
+      }, 10000);
     });
   </script>
 </body>
