@@ -1,41 +1,38 @@
 const express = require("express");
 const http = require("http");
-const socketIo = require("socket.io");
+const { Server } = require("socket.io");
 const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = new Server(server);
 
-// Serve static files (HTML, MP4, MP3)
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, "public"))); // serve 'public' folder
 
-// Serve astronaut page
+// Default route
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "astronaut.html"));
+  res.sendFile(path.join(__dirname, "public", "astronaut.html"));
 });
 
-// Serve ground page
+// Ground page route
 app.get("/ground", (req, res) => {
-  res.sendFile(path.join(__dirname, "ground.html"));
+  res.sendFile(path.join(__dirname, "public", "ground.html"));
 });
 
-// Listen for SOS event from astronaut
 io.on("connection", (socket) => {
-  console.log("🚀 User connected");
+  console.log("🛰 New client connected");
 
   socket.on("sos", (data) => {
-    console.log("📡 SOS signal received:", data);
-    io.emit("sosAlert", data); // send to ground
+    console.log("🚨 SOS Received:", data);
+    io.emit("sosAlert", data);
   });
 
   socket.on("disconnect", () => {
-    console.log("❌ User disconnected");
+    console.log("❌ Client disconnected");
   });
 });
 
-// Start server
 const PORT = 3000;
 server.listen(PORT, () => {
-  console.log(`✅ Server running → http://localhost:${PORT}/astronaut`);
+  console.log(`✅ Server running → http://localhost:${PORT}`);
 });
